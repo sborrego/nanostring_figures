@@ -1,25 +1,28 @@
 library(pheatmap)
+library(dendsort)
+library(ggplot2)
 library(RColorBrewer)
 library(viridis)
-library(dendsort)
+library(wesanderson)
 
+#### Getting the Files
+
+# Set working directory to location of the files
 setwd("/Users/stacey/Downloads/Raw and normalized data/csv format")
 
-# Files to work with
+# Reading the files in and assigning to a variable
 norm_nut <- read.csv(file = "Normalized data of DMSO_27UDP + nutlin.csv")
 norm_x <- read.csv(file = "Normalized data of DMSO_27UDP no nutlin.csv")
 
 # raw_nut <- read.csv(file = "Raw data of DMSO_27UDP +  nutlin.csv")
 # raw_x <- read.csv(file = "Raw data of DMSO_27UDP no nutlin.csv")
 
-# Check out the file
-
+#Check out the file
 head(norm_nut)
 colnames(norm_nut)
 
-# Selecting the columns that we want in our new data frame. In this case the
-# first column with the gene name (column 1) and the count columns
-# (columns 20:25).
+# Selecting the columns that for the new dataframe. In this case the first
+# column with the gene name (column 1) and the count columns (columns 20:25).
 df <- norm_nut[, c(1, 20:25)]
 df2 <- norm_x[, c(1, 20:25)]
 
@@ -31,13 +34,10 @@ names2 <- paste(rep(c("X_27", "DMSO"), each = 3), 1:3, sep ="-")
 colnames(df2)[2:7] <- names2
 
 # Removing the first two rows
-df <- df[-1, ]
-df <- df[-1, ]
+df <- df[3:nrow(df), ]
+df2 <- df2[3:nrow(df2), ]
 
-df2 <- df2[-1, ]
-df2 <- df2[-1, ]
-
-# Merge
+# Merge the two dataframes together by gene name
 merged <- merge(df,
                 df2,
                 by.x = "Probe.Name")
@@ -50,18 +50,18 @@ my_data <- apply(merged[, -1],
 # Name the rows with the gene name
 rownames(my_data) <- merged[, 1]
 
-### Remove Neg and Pos values
-
+### Remove "Neg" and "Pos" values
 pos <- grep("^POS_", row.names(my_data))
 my_data <- my_data[-pos, ]
 
 neg <- grep("^NEG_", row.names(my_data))
 my_data <- my_data[-neg, ]
 
-# Removing housekeeping genes individually
-my_data <- my_data[rownames(my_data) != "GAPDH", ]
-my_data <- my_data[rownames(my_data) != "ACTB", ]
-my_data <- my_data[rownames(my_data) != "PGK1", ]
+# Removing housekeeping genes individually. Don't really need to do this anymore
+# the heatmap colorbar has been adjusted
+# my_data <- my_data[rownames(my_data) != "GAPDH", ]
+# my_data <- my_data[rownames(my_data) != "ACTB", ]
+# my_data <- my_data[rownames(my_data) != "PGK1", ]
 
 #### Filtering for minimum read counts
 
@@ -132,6 +132,7 @@ dat_colors <- data.frame(
 dir <- "/Users/stacey/Downloads/Raw and normalized data/R_data"
 dir.create(dir)
 
+# Saving pdf of heatmap
 pdf(file = paste(dir, "averages_heatmap.pdf", sep = "/"))
 heatmap <- pheatmap(
   data[, 13:16],
@@ -147,16 +148,16 @@ dev.off()
 
 #### Boxplots of genes in data matrix
 
-library(wesanderson)
-library(ggplot2)
-
+# Assigning and creating directory to print the figures
 print.dir <- paste(dir, "figures", sep = "/")
 dir.create(print.dir)
 
+# Assiging groups for each sample triplicate group
 groups <- c("Nut_27", "Nut_DMSO", "X_27", "DMSO")
 groups <- factor(groups)
 group <- rep(groups, each = 3)
 
+# Creating a boxplot for each gene in the "data" dataframe
 for (index in 1:nrow(data)) {
   gene.name <- rownames(data)[index]
 
